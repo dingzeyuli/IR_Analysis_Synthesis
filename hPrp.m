@@ -5,15 +5,14 @@ function H=hPrp(H,C,Nbnds,flm,sb_fs,ftp);
 set(0,'DefaultFigureVisible','off');
 fntsz=15;
 
-
 % find data for Direct (D) and Omnidirectional (V) Speaker IRs
 if ~isempty(C);
     for jc=1:length(C);
-        dndx_t(jc)=length(regexp(C(jc).Name,'Front'));
-        vndx_t(jc)=length(regexp(C(jc).Name,'Omni'));
+        dndx_t(jc)=strcmp(C(jc).Meta.App.AzimuthalAngle_fromFront,H.Meta.App.AzimuthalAngle_fromFront)+strcmp(C(jc).Meta.App.PolarAngle_fromTop,H.Meta.App.PolarAngle_fromTop);
+        vndx_t(jc)=length(regexp(C(jc).Name,'Omni'))+length(regexp(C(jc).Name,'omni'));
         chndx_t(jc)=length(regexp(C(jc).Name,'Ch'));
     end
-    dndx=find(dndx_t~=0);
+    dndx=find(dndx_t==2);
     if isempty(dndx);
         dndx=find(chndx_t~=0);
     end
@@ -28,52 +27,21 @@ else
     H.CalibrationFiles=[];
 end
 
-
 %* === Compute kurtosis in windows ===
 BnL=5; % [Length of window in ms]
-%** Find the numbr of points in the bin and make sure it is an even number
-Nbn=ceil(BnL/1e3*H.fs); 
-if Nbn>length(H.h)*2;
-    Nbn=length(H.h)/4;
-end
-Nbn=Nbn+rem(Nbn,2); 
-%** Repeat the first and last sections
-tmp=[H.h(1:Nbn/2); H.h; H.h(end-Nbn/2+1:end)]; 
-%** Scroll through data points
-krt=zeros(length(H.h),1); 
-stndx=0; Nstp=1; 
-while stndx<(length(tmp)/Nstp-Nbn); stndx=stndx+1; 
-    sc=tmp((stndx-1)*Nstp+[1:Nbn]); 
-    krt(stndx,:)=kurtosis(sc); 
-end; 
-H.krt=krt;
-%** Compute the expected variance of kurtosis for samples of Gaussian noise  
-VrKrt=24*Nbn*(Nbn-1)^2/((Nbn-3)*(Nbn-2)*(Nbn+3)*(Nbn+5)); 
-%** Classify data points as "Sparse" or "Noise-like" 
-Sndx=find(krt>3+2*VrKrt);  %Sparse
-Nndx=find(krt<=3+2*VrKrt); %Noise-like
-H.Tail_ndx=Nndx;
-%** Compute the crossover to Gaussian statistics as the point at which there has been as many Gaussian points as sparse (this is a stable measure but it is also arbitrary and crude)
-%*** Find the maximum (preumably this is near the first arrival)
-[~,mxndx]=max(abs(H.h));
-Sndx(find(Sndx<=mxndx))=[];
-Nndx(find(Nndx<=mxndx))=[];
-NGs=0; NER=1; cnt=mxndx; 
-while (NGs<=NER&&cnt<length(krt)); cnt=cnt+1; 
-    NGs=length(find(Nndx<=cnt)); 
-    NER=length(find(Sndx<=cnt)); 
-end; 
-H.Tgs=cnt/H.fs;
+K=IRKrt(H,BnL);
+H.krt=K.krt;
+VrKrt=K.VrKrt;
+Sndx=K.Sndx;
+Nndx=K.Nndx;
+H.Tgs=K.Tgs;
+H.Tail_ndx=K.Nndx;
 
 %* === remove the direct and omnidirectional speaker transfer function from IR time series ===
 H.h_before_removing_speaker_TF=H.h;
 if ~isempty(V);
     h=H.h;
-    vSpc=V.Attck(3).Spc;
-    vff=V.Attck(3).ff;
     h_Tail_Calibrated=RmvSpkTrnsFn(H,V);
-    dSpc=D.Attck(3).Spc;
-    dff=D.Attck(3).ff;
     h_Direct_Calibrated=RmvSpkTrnsFn(H,D);
     % splice the two calibrated IR together with a crossfade
     CrssL=10; %crossfade length in ms
@@ -82,7 +50,8 @@ if ~isempty(V);
     end
     Ncrss=ceil(CrssL/1e3*H.fs);
     Ncrss=Ncrss+rem(Ncrss,2);
-    N1=cnt-Ncrss/2;
+    GsNdx=ceil(H.Tgs*H.fs);
+    N1=GsNdx-Ncrss/2;
     N2=length(H.h)-N1-Ncrss;
     wn1=[ones(N1,1); linspace(1,0,Ncrss).'; zeros(N2,1)];
     wn2=[zeros(N1,1); linspace(0,1,Ncrss).'; ones(N2,1)];
@@ -108,26 +77,29 @@ end
 Npts=length(H.h);
 [fltbnk,ff,erbff]=make_erb_cos_filters(3*Npts,H.fs,Nbnds,flm(1),flm(2));
 Cgrm=generate_subbands([zeros(Npts,1); H.h; zeros(Npts,1)].',fltbnk);
+Bgrm=Cgrm;
 Cgrm=Cgrm(Npts+[1:Npts],:).'; 
 %** Remove the extreme bands
-Cgrm=Cgrm([2:(end-1)],:);
+%Cgrm=Cgrm([2:(end-1)],:);
 H.off=ff;
-H.ff=ff([2:(end-1)]);
+%H.ff=ff([2:(end-1)]);
+H.ff=ff;
 %** Repeat this for the snapshots
 Nsnps=size(H.h_snps,2);
 SnpCgrm=zeros(size(Cgrm,1),size(Cgrm,2),Nsnps);
 for jsnp=1:Nsnps;
     sCgrm=generate_subbands([zeros(Npts,1); H.h_snps(:,jsnp); zeros(Npts,1)].',fltbnk);
+    SnpBgrm(:,:,jsnp)=sCgrm;
     sCgrm=sCgrm(Npts+[1:Npts],:).'; 
-    sCgrm=sCgrm([2:(end-1)],:);
+    %sCgrm=sCgrm([2:(end-1)],:);
     SnpCgrm(:,:,jsnp)=sCgrm;
 end
 
 %* == Scroll through cochlear channels ==
 unix(sprintf('! mkdir -p %s/Subbands_%d',H.Path,Nbnds));
-BdBndsFlg=zeros(1,Nbnds);
-for jbn=1:Nbnds; 
-    fprintf('%s: Band %d/%d\n',H.Path,jbn,Nbnds);
+BdBndsFlg=zeros(1,Nbnds+2);
+for jbn=1:(Nbnds+2); 
+    fprintf('%s: Band %d/%d\n',H.Path,jbn,(Nbnds+2));
     % Extract the subband
     tmp=Cgrm(jbn,:);
     %** record the subband peak amplitude
@@ -143,10 +115,16 @@ for jbn=1:Nbnds;
     if length(N2ndx)<20;
         fprintf('Not enough Gaussian points: fitting decay rates to all the data\n')
         N2ndx=1:length(tmp3);
+        if length(tmp3)<20;
+            fprintf('Not enough points in time series: fitting the data at audio sampling frequency\n')
+            tmp3=tmp2;
+            N2ndx=1:length(tmp3);
+            sb_fs=H.fs;
+        end
     end
     % Fit an exponential decay model
     tt=[1:length(tmp3)]/sb_fs; 
-    [Pft,NsFlr,Test,FVE]=FtPlyDcy(tmp3(N2ndx),tt(N2ndx),1,1);
+    [Pft,NsFlr,Test,FVE]=FtPlyDcy(tmp3(N2ndx),tt(N2ndx),1);
     alph=Pft(2); bt=-Pft(1);
     % Do this for all the snapshots
     for jsnp=1:Nsnps
@@ -154,10 +132,11 @@ for jbn=1:Nbnds;
         snp2=abs(hilbert([zeros(1,Npts) snp zeros(1,Npts)]));  
         snp2=snp2(Npts+[1:Npts]);
         snp3=resample(snp2,sb_fs,H.fs);  
-        [sPft,snp_NsFlr,snp_Test,snp_FVE]=FtPlyDcy(snp3(N2ndx),tt(N2ndx),1,1);     
+        [sPft,snp_NsFlr,snp_Test,snp_FVE]=FtPlyDcy(snp3(N2ndx),tt(N2ndx),1);     
         snpB(jsnp)=-sPft(1);
         snpRT60(jsnp)=60/-sPft(1);
         snpDRR(jsnp)=sPft(2);
+        TTest(jsnp)=snp_Test;
     end
     %** Get variances
     sdB=std(snpB);
@@ -172,7 +151,13 @@ for jbn=1:Nbnds;
     infndx=ceil(Test*H.fs);
     if infndx>length(tmp); infndx=length(tmp)-1; end
     ntmp=tmp.*([ones(1,infndx) 10.^((-bt*[1:(length(tmp)-infndx)]/H.fs)/20)]); 
-    nCgrm(jbn,:)=ntmp;
+    Bgrm(:,jbn)=Bgrm(:,jbn).*([ones(Npts+infndx,1); 10.^((-bt*[1:(2*Npts-infndx)].'/H.fs)/20)]);
+    % and remove the noise floor from the snapshots
+    for jsnp=1:Nsnps
+        infndx=ceil(TTest(jsnp)*H.fs);
+        if infndx>length(tmp); infndx=length(tmp)-1; end
+        nSnpCgrm(:,jbn,jsnp)=SnpBgrm(:,jbn,jsnp).*([ones(Npts+infndx,1); 10.^((-bt*[1:(2*Npts-infndx)].'/H.fs)/20)]); 
+    end
     %** compute subband properties
     %*** spectrum of the early reflections and diffuse section 
     %*** (for only the sections where the IR is above the noise floor)
@@ -193,36 +178,48 @@ for jbn=1:Nbnds;
 end
 H.BdBndsFlg=find(H.BdBndsFlg==1);
 % resynthesize the new denoised IR estimate
-nCgrm=[zeros(1,size(nCgrm,2)); nCgrm; zeros(1,size(nCgrm,2))];
-nh=collapse_subbands([zeros(size(nCgrm)) nCgrm zeros(size(nCgrm))].',fltbnk);
+nh=collapse_subbands(Bgrm,fltbnk);
 nh=nh(Npts+[1:Npts]);
-nCgrm=nCgrm(2:(end-1),:);
 H.h_before_removing_noisefloor=H.h;
 H.h=nh;
+for jsnp=1:Nsnps;
+    nsnp=collapse_subbands(nSnpCgrm(:,:,jsnp),fltbnk);
+    nsnp=nsnp(Npts+[1:Npts]);
+    H.h_snps(:,jsnp)=nsnp;
+end
 
 %* measure broadband properties
+%* === Now that the noise-floor is removed re-compute the kurtosis ===
+K=IRKrt(H,BnL);
+H.krt=K.krt;
+VrKrt=K.VrKrt;
+Sndx=K.Sndx;
+Nndx=K.Nndx;
+H.Tgs=K.Tgs;
+H.Tail_ndx=K.Nndx;
 %** Spectrum
-tmp=[zeros(size(H.h)); H.h; zeros(size(H.h))];
-nft=2^ceil(log2(length(tmp)));
-spc=fft(tmp,nft);
-H.spc=spc(1:end/2);
-H.Spcff=[1:nft/2]*H.fs/nft;
+%tmp=[zeros(size(H.h)); H.h; zeros(size(H.h))];
+%nft=2^floor(log2(length(tmp)));
+%nft=nft/8;
+tmp=[ H.h ];
+nft=128;
+[spc,spcff]=pwelch(tmp,nft,nft/4,nft,H.fs);
+H.spc=spc;
+H.Spcff=spcff;
+%spc=fft(tmp,nft);
+%H.spc=spc(1:end/2);
+%H.Spcff=[1:nft/2]*H.fs/nft;
 %* Compute the spectrum in time windows
 ndx=min(find(abs(H.h)>prctile(abs(nh),90)));
 cnt=0;
 for jj=1:2:11; cnt=cnt+1;
     Nft=2^(jj+4);
-    tmp=[nh; zeros(2*Nft,1)];
-    Bgspc=zeros(Nft/2,1);
-    for jstrt=1:(Nft/8);
-        spc_t=tmp(ndx+jstrt-1+[0:(Nft-1)]);
-        spc_t=spc_t.*hann(length(spc_t));
-        spc=fft(spc_t,Nft); 
-        Bgspc=Bgspc+abs(spc(1:Nft/2))/(Nft/8); 
-    end
-    Attck(cnt).Spc=Bgspc(1:Nft/2);
-    Attck(cnt).SpcIntrp=interp1([1:Nft/2]*H.fs/Nft,Bgspc,ff,'spline');
-    Attck(cnt).ff=[1:Nft/2]*H.fs/Nft;
+    tmp=[H.h; zeros(2*Nft,1)];
+    spc_t=tmp(ndx+[0:(Nft-1)]);
+    [spc,spcff]=pwelch(spc_t,Nft/8,Nft/16,Nft,H.fs);
+    Attck(cnt).Spc=spc;
+    Attck(cnt).SpcIntrp=interp1(spcff,spc,ff,'spline');
+    Attck(cnt).ff=spcff;
     Attck(cnt).T=Nft/H.fs;
 end
 H.Attck=Attck;
@@ -244,7 +241,7 @@ for jm=1:length(H.Modes);
     md=md(Npts+[1:Npts]);
     md=interp1([1:Npts]/H.fs,md,tt);
     % measure mode decay properties
-    [Pft,NsFlr,Test,FVE]=FtPlyDcy(md,tt,1,1);
+    [Pft,NsFlr,Test,FVE]=FtPlyDcy(md,tt,1);
     H.Modes(jm).OnPwr=Pft(2);
     H.Modes(jm).RT60=60/abs(Pft(1));
     H.Modes(jm).MnPwr=mean(20*log10(md));
