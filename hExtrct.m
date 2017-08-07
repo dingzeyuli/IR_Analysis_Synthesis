@@ -59,9 +59,9 @@ H.fs=G.fs;
 
 %* Estimate the region that likely contains signal (beginning and end are usually noise)
 %** Plot and query user for the start and end times of the IR
-if exist(sprintf('%s/IR_StartEnd.txt',Pth))~=2; 
+%if exist(sprintf('%s/IR_StartEnd.txt',Pth))~=2; 
     set(0,'DefaultFigureVisible','on');
-end
+%end
 figure;
 subplot(3,1,1)
 plot(20*log10(abs(H.h))); 

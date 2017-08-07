@@ -5,18 +5,18 @@
 %* == Specify Inputs ==
 %** Sampling frequency in Hz 
 %must be compatible with playback/recording hardware
+fs=192000;       
 fs=96000;       
 fs=44100;       
-fs=192000;       
 %** Desired length of a single Golay sequence in s.  
 %This should be longer than any IRs to be recorded.
 Lg=1;
 %** Number of repetitions
 % Noise floor in IRs due to background noise and electrical noise should decrease as \sqrt{Nrp}
-Nrp=4;
+Nrp=1;
 %** Bits per sample
 %must be compatible with playback/recording hardware
-Bts=24;
+Bts=16;
 
 %* == Generate Golay sequence ==
 %** Specify short golay sequences 
@@ -40,7 +40,7 @@ ab=ab.';
 
 %* == Write file (Scaling by 0.9999 suppresses a warning message about clipping) ==
 %** Specify Filename
-fnm=sprintf('golay_%dkHz_N%d_%dmin_%dbits',round(fs/1e3),round(log2(length(a))),round(length(ab)/fs/60),Bts);
+fnm=sprintf('my_golay_%dkHz_N%d_%dmin_%dbits',round(fs/1e3),round(log2(length(a))),round(length(ab)/fs/60),Bts);
 %** Write Audio
 audiowrite([fnm '.wav'],ab*0.9999,fs,'BitsPerSample',Bts);
 %** Save metadata in a structure

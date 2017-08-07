@@ -23,7 +23,7 @@ rcnt=rcnt+1; R(rcnt).Name='R_LoSpc';        R(rcnt).cmp='Reds3';
 rcnt=rcnt+1; R(rcnt).Name='R_Sn';        R(rcnt).cmp='Reds3';
 rcnt=rcnt+1; R(rcnt).Name='R_Tp10';        R(rcnt).cmp='Reds3';
 rcnt=rcnt+1; R(rcnt).Name='R_Tp5';        R(rcnt).cmp='Reds3';
-rcnt=rcnt+1; R(rcnt).Name='R_RmvMds';        R(rcnt).cmp='Reds3';
+%rcnt=rcnt+1; R(rcnt).Name='R_RmvMds';        R(rcnt).cmp='Reds3';
 rcnt=rcnt+1; R(rcnt).Name='R_AddMds';        R(rcnt).cmp='Reds3';
 
 scnt=0;
@@ -48,10 +48,10 @@ fntsz=15;
 
 %* == Compute the cochleagram ==
 %** zeropad to avoid edge effects
-Npts=length(H.nh);
+Npts=length(H.h);
 Nbnds=length(H.ff);
 [fltbnk,ff,erbff]=make_erb_cos_filters(3*Npts,H.fs,Nbnds,H.ff(1),H.ff(end));
-Cgrm=generate_subbands([zeros(Npts,1); H.nh; zeros(Npts,1)].',fltbnk);
+Cgrm=generate_subbands([zeros(Npts,1); H.h; zeros(Npts,1)].',fltbnk);
 Cgrm=Cgrm(Npts+[1:Npts],:).'; 
 %** Remove the extreme bands
 Cgrm=Cgrm([2:(end-1)],:);
@@ -61,7 +61,7 @@ H.ff=ff([2:(end-1)]);
 CgrmP=sum(Cgrm.^2,2);
 [~,Pordr]=sort(CgrmP,'descend');
 
-tt=[1:length(H.nh)]/H.fs;
+tt=[1:length(H.h)]/H.fs;
 %* == Scroll through cochlear channels ==
 for jbn=1:Nbnds; 
     % Extract the subband
@@ -460,7 +460,7 @@ for js=1:length(S)
 end
 
 %* == Plot ==
-P1.h=H.nh;
+P1.h=H.h;
 P1.Name='RW';
 P1.cmp='Blues9';
 P1.Cgrm=Cgrm;
