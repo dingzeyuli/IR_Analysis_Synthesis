@@ -1,4 +1,4 @@
-function PltIRStts_MdRT60(Dh,PltPrm,V)
+function PltIRStts_MdmRT60(Dh,PltPrm,V)
 
 % preallocate one data point for each class for the legend
 MkLgnd(V,Dh,PltPrm)
@@ -27,12 +27,19 @@ for jj=1:length(V)
     Mdf(ndx+1)=Mdf(ndx+1)+1e-3*rand(size(ndx));
     RR=interp1(Mdf,MdR,ff);
     % plot this class
-    hp=plot(MdR,Mdf/1e3,V(jj).mrk);
-    set(hp,'color',V(jj).cmp);
-    hold on
+    %hp=plot(MdR,Mdf/1e3,V(jj).mrk);
+    %set(hp,'color',V(jj).cmp);
     % plot the mean
     hp=plot(mean(MdR),mean(Mdf)/1e3,V(jj).mrk);
     set(hp,'linewidth',3,'markersize',6);
+    set(hp,'color',V(jj).cmp);
+    hold on
+    % and the standard deviation
+    hp=plot(mean(MdR)*ones(1,2),(mean(Mdf)+[-1 1]*std(Mdf)/2)/1e3,'-');
+    set(hp,'linewidth',1);
+    set(hp,'color',V(jj).cmp);
+    hp=plot(mean(MdR)+[-1 1]*std(MdR/2),mean(Mdf)/1e3*ones(1,2),'-');
+    set(hp,'linewidth',1);
     set(hp,'color',V(jj).cmp);
 
     %hp=plot(RR,ff/1e3,'-');

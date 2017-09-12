@@ -13,12 +13,14 @@ Input_file='Input_Survey_2'; Nm='Tst';
 %Input_file='Input_IRSurvey_NatStats'; Nm='NtStts';
 %Input_file='Input_IR_Survey_2_OM'; Nm='RvrbStrct'
 Input_file='Input_IR_ControlION'; Nm='CntrlION'
-Input_file='Input_ShrtvsLng';  Nm='ShrtvsLng'
+%Input_file='Input_ShrtvsLng';  Nm='ShrtvsLng'
 %Input_file='Input_IR_Control'; Nm='CntrlZpp'
 %Input_file='Input_ObjIRs'; Nm='ObjIRs'
+%Input_file='Input_ObjIRs_Ext'; Nm='ObjIRs_Ext'
 eval(sprintf('[Rpth,Cpth,Mt,Amnd,html_tmp]=%s;',Input_file));
 
 Nbnds=4;
+H_FLG=1; % if 1 this copies the H.mat files into the output folder (warning this might make a huge and unwieldy directory)
 
 pth=pwd;
 if strcmp(pth(1:3),'/om')
@@ -83,6 +85,7 @@ for jr=1:length(Rjct);
     end
     fprintf('%d/%d IRs rejected for %s\n',rcnt,length(Dh)+rcnt,Rjct(jr).Expr);
 end
+fprintf('%d IRs left\n',length(Dh));
 
 %* Label the Path structures
 for jh=1:length(Dh)
@@ -91,7 +94,7 @@ for jh=1:length(Dh)
     M=orderfields(M);
     Dh(jh).Meta=M.Meta;
     % add a Name
-    Dh(jh).Meta.FileName=Dh(jh).PthStm;
+    %Dh(jh).Meta.FileName=Dh(jh).PthStm;
     %Mflds=fields(M);
     %for jfld=1:length(Mflds)
     %    if ~strcmp(Mflds{jfld},'Path')
@@ -99,7 +102,7 @@ for jh=1:length(Dh)
     %    end
     %end
 end
-Mt{length(Mt)+1}='Meta.FileName';
+%Mt{length(Mt)+1}='Meta.FileName';
 
 %** Normalize amplitudes
 for jh=1:length(Dh)
@@ -111,7 +114,6 @@ for jh=1:length(Dh);
     Dh(jh).MaxAmp=Dh(jh).MaxAmp/Mx;
 end
 
-%* == add synthetic IRs
 %* == Plot Data
 %** == TODO: specify a colormap for the global IRs to be used in plots
 %*** == TODO: rank and label
@@ -122,21 +124,20 @@ end
 %%print(gcf,'-depsc',sprintf('IRMFigs/Lgnd%dIRs_%s',length(BH),nw));
 %saveas(gcf,sprintf('IRMFigs/Lgnd%dIRs_%s',length(BH),nw));
 
-
 %** Write Data
 fNm=sprintf('IRstts_%s_%03d',Nm,Nbnds);
 unix(sprintf('mkdir -p %s',fNm));
 unix(sprintf('rm -rf %s/*',fNm));
 hPltStts(Dh,Mt,Amnd,fNm);
 
-Mt=Mt(1:end-1); % this is because WrtDt2HTML bugs if we have FileName in it
+%Mt=Mt(1:end-1); % this is because WrtDt2HTML bugs if we have FileName in it
 
 %* == Write an html file to display all the data
 %** clear the output folders
-fcnt=0;
-fcnt=fcnt+1; Flds{fcnt}='Meta.Env.Class';
-fcnt=fcnt+1; Flds{fcnt}='Meta.Env.SpaceName';
-WrtDt2HTML(Dh,sprintf('%s',fNm),html_tmp,sprintf('%s',fNm),Mt,Mt,tmtpth);
+%fcnt=0;
+%fcnt=fcnt+1; Flds{fcnt}='Meta.Env.Class';
+%fcnt=fcnt+1; Flds{fcnt}='Meta.Env.SpaceName';
+WrtDt2HTML(Dh,sprintf('%s',fNm),html_tmp,sprintf('%s',fNm),Mt,Mt,tmtpth,H_FLG);
 if length(Cpth)>0;
     unix(sprintf('cp %s/*.jpg %s/',Cpth(1).Pth,fNm));
 end

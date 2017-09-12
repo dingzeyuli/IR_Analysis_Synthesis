@@ -1,14 +1,11 @@
-function H=hSynth(H,ftp);
+function hSynth(H);
+set(0,'DefaultFigureVisible','off');
 %* == hSynth.m i.e. Make synthetics ==
 %* Takes a structure of IR properties (i.e. H, output by hPrp.m), and makes a family of synthetics
 
-fprintf('We should add something here to manimpualte modes');
-
-set(0,'DefaultFigureVisible','off');
-
 rcnt=0;
 rcnt=rcnt+1; R(rcnt).Name='R_SpcCnst';    R(rcnt).cmp='BuPu3';
-rcnt=rcnt+1; R(rcnt).Name='R_SpcRot';    R(rcnt).cmp='BuPu3';
+%rcnt=rcnt+1; R(rcnt).Name='R_SpcRot';    R(rcnt).cmp='BuPu3';
 rcnt=rcnt+1; R(rcnt).Name='R_Lng2';    R(rcnt).cmp='BuPu3';
 rcnt=rcnt+1; R(rcnt).Name='R_Lng3';    R(rcnt).cmp='BuPu3';
 rcnt=rcnt+1; R(rcnt).Name='R_Lng4';    R(rcnt).cmp='BuPu3';
@@ -16,8 +13,8 @@ rcnt=rcnt+1; R(rcnt).Name='R_Lng5';    R(rcnt).cmp='BuPu3';
 rcnt=rcnt+1; R(rcnt).Name='R_Shrt';    R(rcnt).cmp='BuPu3';
 %rcnt=rcnt+1; R(rcnt).Name='R_NoMod';      R(rcnt).cmp='YlGn3';
 rcnt=rcnt+1; R(rcnt).Name='R_Lin';        R(rcnt).cmp='Reds3';
-rcnt=rcnt+1; R(rcnt).Name='R_MrSym';        R(rcnt).cmp='BuPu9';
-rcnt=rcnt+1; R(rcnt).Name='R_LssSym';        R(rcnt).cmp='Reds3';
+%rcnt=rcnt+1; R(rcnt).Name='R_MrSym';        R(rcnt).cmp='BuPu9';
+%rcnt=rcnt+1; R(rcnt).Name='R_LssSym';        R(rcnt).cmp='Reds3';
 rcnt=rcnt+1; R(rcnt).Name='R_HiSpc';        R(rcnt).cmp='BuPu9';
 rcnt=rcnt+1; R(rcnt).Name='R_LoSpc';        R(rcnt).cmp='Reds3';
 rcnt=rcnt+1; R(rcnt).Name='R_Sn';        R(rcnt).cmp='Reds3';
@@ -71,7 +68,7 @@ for jbn=1:Nbnds;
     tmp2=tmp2(Npts+[1:Npts]);
     % compute a new altered subband
     for jr=1:length(R)
-        R(jr).Name
+        R(jr).Name;
         %** Spectrally constant
         if strcmp('R_SpcCnst',R(jr).Name);
             Dcy=60/(H.RT60(jbn));
@@ -270,8 +267,8 @@ for jr=1:length(R)
     if strcmp('R_RmvMds',R(jr).Name)
         h=R(jr).h;
         for jm=1:length(H.Modes);
-            if H.Modes(jm).cf-H.Modes(jm).Wd/2>0;
-                [b,a]=iirnotch(H.Modes(jm).cf/(H.fs/2),H.Modes(jm).Wd/2/(H.fs/2));
+            if H.Modes(jm).cf-H.Modes(jm).bw/2>0;
+                [b,a]=iirnotch(H.Modes(jm).cf/(H.fs/2),H.Modes(jm).bw/2/(H.fs/2));
                 h=filtfilt(b,a,h);
             end
         end
@@ -465,7 +462,7 @@ P1.Name='RW';
 P1.cmp='Blues9';
 P1.Cgrm=Cgrm;
 
-sPth=sprintf('%s/Synth%03dBnds',H.Path,Nbnds);
+sPth=sprintf('%s/Synth%03dBnds',H.Path,Nbnds-2);
 unix(sprintf('mkdir -p %s',sPth));
 
 P=[orderfields(P1) orderfields(R) orderfields(S)];

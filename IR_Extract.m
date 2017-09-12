@@ -14,11 +14,16 @@ Input_file='Input_Survey_2';
 %Input_file='Input_IR_Survey_2';
 Input_file='Input_IR_ControlION'; Nm='CntrlION'
 Input_file='Input_IR_Control'; Nm='CntrlZpp'
+Input_file='Input_Cntrl2_Omni'; Nm='Cntrl2Omni'
+Input_file='Input_Cntrl2_ION'; Nm='Cntrl2ION'
+Input_file='Input_Cntrl2_Zipp'; Nm='Cntrl2Zpp'
+Input_file='Input_OculusCAL'; Nm='OculusCAL'
 %Input_file='Input_ACvsBth';
+%Input_file='Input_Msq';
 %Input_file='Input_ShrtvsLng';
 %Input_file='Input_UtahReverb';
-%Input_file='Input_ObjectIRs';
-%Input_file='Input_ObjectIRs_Ext';
+%Input_file='Input_ObjIRs';
+%Input_file='Input_ObjIRs_Ext';
 eval(sprintf('[R,C,Mt]=%s;',Input_file));
 %==> R is a structure of recordings
 %==> C is a structure of calibration recordings

@@ -14,11 +14,11 @@ Input_file='Input_IR_example';        Sb_fs=4e2; % Frequency of subband envelope
 %Input_file='Input_IR_Survey_2_OM';  Sb_fs=4e2; % Frequency of subband envelopes in Hz
 Input_file='Input_IR_ControlION';  Sb_fs=4e2; % Frequency of subband envelopes in Hz
 Input_file='Input_IR_Control';  Sb_fs=4e2; % Frequency of subband envelopes in Hz
-%Input_file='Input_ACvsBth';  Sb_fs=4e2; % Frequency of subband envelopes in Hz
+Input_file='Input_ACvsBth';  Sb_fs=4e2; % Frequency of subband envelopes in Hz
 %Input_file='Input_ShrtvsLng';  Sb_fs=4e2; % Frequency of subband envelopes in Hz
 %Input_file='Input_IRSurvey_NatStats'; Sb_fs=4e2;
-%Input_file='Input_ObjectIRs';      Sb_fs=1e3; 
-%Input_file='Input_ObjectIRs_Ext';      Sb_fs=1e3; 
+%Input_file='Input_ObjIRs';      Sb_fs=1e3; 
+%Input_file='Input_ObjIRs_Ext';      Sb_fs=1e3; 
 eval(sprintf('[Rpth,Cpth,Mt]=%s;',Input_file));
 
 %** = Number of cochlear subbands for analysis =
@@ -26,7 +26,7 @@ Nbnds=[4];
 %** = Frequency limits in Hz =
 flm=[50 20e3];
 % Overwrite calibration files (Do this if hPrp or any paths have been changed)
-OvrWrtCAL=0;
+OvrWrtCAL=1;
 %** filetype
 ftp='jpg';
 %ftp='epsc';
@@ -123,21 +123,30 @@ for jh=1:length(Dh);
         save(sprintf('%s/H_%03dbnds.mat',H.Path,Nbnds),'H');
         fprintf('Data saved to %s_%dBnds\n',H.Path,Nbnds);   
         %*** => Make synthetic IRs
-        %tH=hSynth(tH,ftp);
+        hSynth(H);
         %*** => save plots of IR information
         %*** => save audio
         h=H.h;
         MaxAmp=max(abs(h));
         h=h/MaxAmp*(1-1e-6);
         h=[zeros(ceil(H.fs/5),1); h; zeros(ceil(H.fs/2),1)];
+        % compute a tail only time series
+        t=H.tl;
+        t=t/MaxAmp*(1-1e-6);
+        t=[zeros(ceil(H.fs/5),1); t; zeros(ceil(H.fs/2),1)];
         if ~isempty(H.CalibrationFiles)
             audiowrite(sprintf('%s/h_cal_%03d.wav',H.Path,Nbnds),h,H.fs,'BitsPerSample',24);
+            audiowrite(sprintf('%s/h_tl_cal_%03d.wav',H.Path,Nbnds),t,H.fs,'BitsPerSample',24);
             for jsnp=1:size(H.h_snps,2);
                 h=H.h_snps(:,jsnp);
                 MaxAmp=max(abs(h));
                 h=h/MaxAmp*(1-1e-6);
                 h=[zeros(ceil(H.fs/5),1); h; zeros(ceil(H.fs/2),1)];
                 audiowrite(sprintf('%s/h_snp%03d_cal_%03dbnds.wav',H.Path,jsnp,Nbnds),h,H.fs,'BitsPerSample',24);
+                t=H.tl_snps(:,jsnp);
+                t=t/MaxAmp*(1-1e-6);
+                t=[zeros(ceil(H.fs/5),1); t; zeros(ceil(H.fs/2),1)];
+                audiowrite(sprintf('%s/h_tl_snp%03d_cal_%03dbnds.wav',H.Path,jsnp,Nbnds),t,H.fs,'BitsPerSample',24);
             end
         else 
             audiowrite(sprintf('%s/h_denoised_%03d.wav',H.Path,Nbnds),h,H.fs,'BitsPerSample',24); 
